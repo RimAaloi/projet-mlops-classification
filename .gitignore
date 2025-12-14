@@ -1,0 +1,14 @@
+# Ignorer l'environnement Python
+.venv/ 
+env/
+__pycache__/
+
+# Ignorer les dossiers contenant les données et les modèles qui seront gérés par DVC
+data/
+models/
+
+# Ignorer les dossiers créés par votre OS ou IDE
+.DS_Store
+*.pyc
+/data
+/models
