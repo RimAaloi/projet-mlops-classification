@@ -102,10 +102,12 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add dvc.lock metrics/metrics.json metrics/plots/    # Ne commit que s'il y a des changements
+          git add dvc.lock metrics/metrics.json metrics/plots/
           if ! git diff --cached --quiet; then
-          git commit -m "ci: update metrics and plots [skip ci]"
-          git push origin HEAD:${{ github.head_ref }}
+            git commit -m "ci: update metrics and plots [skip ci]"
+            # Utiliser head_ref pour les PRs, sinon ref_name pour les push directs
+            BRANCH="${{ github.head_ref || github.ref_name }}"
+            git push origin HEAD:$BRANCH
           else
-          echo "No changes to commit"
+            echo "No changes to commit"
           fi
