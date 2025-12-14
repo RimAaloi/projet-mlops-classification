@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:17
+    container_name: mlflow_db
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflowpassword
+      POSTGRES_DB: mlflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow_server
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://mlflow:mlflowpassword@db:5432/mlflow_db
+      MLFLOW_ARTIFACT_ROOT: /mlruns
+    command: mlflow server --backend-store-uri postgresql://mlflow:mlflowpassword@db:5432/mlflow_db --default-artifact-root /mlruns --host 0.0.0.0
+    volumes:
+      - ./mlruns:/mlruns
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fashion_api
+    depends_on:
+      - mlflow
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MODELS_DIR: models
+      DEFAULT_MODEL: cnn
+    volumes:
+      - ./models:/app/models
+      - ./src:/app/src
+
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    container_name: fashion_train
+    depends_on:
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./src:/app/src
+    profiles:
+      - train
+
+volumes:
+  postgres_data:

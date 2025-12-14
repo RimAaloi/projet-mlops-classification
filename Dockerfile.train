@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for TensorFlow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libhdf5-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt --timeout 1000
+
+# Copy source code
+COPY src/ ./src/
+
+# Set default environment variables
+ENV MLFLOW_TRACKING_URI=http://mlflow:5000
+ENV PYTHONUNBUFFERED=1
+
+# Download data if not present, then run all training scripts
+CMD ["sh", "-c", "python src/train.py && python src/train_cnn.py && python src/train_transfer.py"]
