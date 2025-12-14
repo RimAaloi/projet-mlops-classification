@@ -1,0 +1,62 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/fashion-mnist/fashion-mnist_test.csv
+      hash: md5
+      md5: 64ec16a6b73b3514634d529a71dd8306
+      size: 22176691
+    - path: data/fashion-mnist/fashion-mnist_train.csv
+      hash: md5
+      md5: 976229da8a00a3ccf41b8009e4e48d77
+      size: 133047193
+    - path: src/train.py
+      hash: md5
+      md5: 787a5cad3eeaa9152338f994d3c25f10
+      size: 2559
+    outs:
+    - path: models/fashion_classifier.keras
+      hash: md5
+      md5: 532408768eb1f41ef7aad7ced7c1683b
+      size: 6455248
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/fashion-mnist/fashion-mnist_test.csv
+      hash: md5
+      md5: 64ec16a6b73b3514634d529a71dd8306
+      size: 22176691
+    - path: models/cnn_model.keras
+      hash: md5
+      md5: 81e53a920366b1aec2463595312f1da2
+      size: 2196491
+    - path: models/fashion_classifier.keras
+      hash: md5
+      md5: ea1a1b1347981a2de1808f61317a280a
+      size: 6455254
+    - path: models/transfer_model.keras
+      hash: md5
+      md5: ce6f00cda3f4c249446f2d6109536b2c
+      size: 8712672
+    - path: src/evaluate.py
+      hash: md5
+      md5: 13b496b3907bcee842637ea0a006d229
+      size: 4421
+    outs:
+    - path: metrics/metrics.json
+      hash: md5
+      md5: a5c211d9542f6bdedef1cbfc0b119c16
+      size: 494
+    - path: metrics/plots/confusion_matrix_cnn.png
+      hash: md5
+      md5: 41753321b71bd1055c0c2c5cef18da93
+      size: 62360
+    - path: metrics/plots/confusion_matrix_simple_mlp.png
+      hash: md5
+      md5: fbf496788b9cffb3ecdefca6e438106b
+      size: 64987
+    - path: metrics/plots/confusion_matrix_transfer_learning.png
+      hash: md5
+      md5: 6cae9a251c7106402ec845c3fd519dce
+      size: 66168

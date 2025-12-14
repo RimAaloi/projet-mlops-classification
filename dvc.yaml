@@ -1,0 +1,25 @@
+stages:
+  evaluate:
+    deps:
+    - src/evaluate.py
+      # Dépendances sur les 3 modèles pour la comparaison
+    - models/fashion_classifier.keras
+    - models/cnn_model.keras
+    - models/transfer_model.keras
+    - data/fashion-mnist/fashion-mnist_test.csv
+
+    cmd: python src/evaluate.py
+
+    metrics:
+    - metrics/metrics.json:
+        cache: false   # Stocké dans Git
+    plots:
+    - metrics/plots/confusion_matrix_simple_mlp.png:
+        cache: false
+        template: confusion
+    - metrics/plots/confusion_matrix_cnn.png:
+        cache: false
+        template: confusion
+    - metrics/plots/confusion_matrix_transfer_learning.png:
+        cache: false
+        template: confusion
