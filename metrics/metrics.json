@@ -1,0 +1,17 @@
+{
+    "simple_mlp": {
+        "accuracy": 0.8533,
+        "f1_score": 0.8507,
+        "confusion_matrix_plot": "metrics/plots/confusion_matrix_simple_mlp.png"
+    },
+    "cnn": {
+        "accuracy": 0.8984,
+        "f1_score": 0.8984,
+        "confusion_matrix_plot": "metrics/plots/confusion_matrix_cnn.png"
+    },
+    "transfer_learning": {
+        "accuracy": 0.8456,
+        "f1_score": 0.8463,
+        "confusion_matrix_plot": "metrics/plots/confusion_matrix_transfer_learning.png"
+    }
+}
