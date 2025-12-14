@@ -1,0 +1,111 @@
+name: MLOps DVC + CML Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - 'feature/**'
+
+jobs:
+  run-dvc-pipeline:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write          # Permet de créer un commit
+      pull-requests: write     # Permet de commenter les PR
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DVC_REMOTE_NAME: s3_remote
+      REPO_TOKEN: ${{ secrets.GH_PAT }}  # Utiliser un Personal Access Token (PAT) avec droits repo
+
+    steps:
+
+      # 1) Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      # 2) Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3) Node / CML
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 4) Install dependencies
+      - name: Install dependencies (DVC + ML + CML)
+        run: |
+          pip install --upgrade pip
+          pip install dvc[s3]
+          pip install -r requirements.txt
+          npm install -g @dvcorg/cml
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      # 5) Pull data & models
+      - name: Pull data & models from DVC remote
+        run: dvc pull -r $DVC_REMOTE_NAME
+
+      # 6) Run DVC pipeline
+      - name: Run DVC pipeline
+        run: dvc repro
+
+      # 7) Push updated artifacts
+      - name: Push new artifacts to DVC remote
+        run: |
+          dvc commit
+          dvc push -r $DVC_REMOTE_NAME
+
+      # 8) Generate CML report
+      - name: Generate CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ACCURACY_MLP=$(jq -r '.simple_mlp.accuracy' metrics/metrics.json)
+          ACCURACY_CNN=$(jq -r '.cnn.accuracy' metrics/metrics.json)
+          ACCURACY_TL=$(jq -r '.transfer_learning.accuracy' metrics/metrics.json)
+
+          F1_MLP=$(jq -r '.simple_mlp.f1_score' metrics/metrics.json)
+          F1_CNN=$(jq -r '.cnn.f1_score' metrics/metrics.json)
+          F1_TL=$(jq -r '.transfer_learning.f1_score' metrics/metrics.json)
+
+          echo "## 📊 Rapport d'exécution du pipeline MLOps" > report.md
+          echo "Pipeline exécuté avec succès via GitHub Actions." >> report.md
+          echo "### 📈 Performances des modèles" >> report.md
+          echo "Modèle | Accuracy | F1-score" >> report.md
+          echo ":--- | :--- | :---" >> report.md
+          echo "Simple MLP | $ACCURACY_MLP | $F1_MLP" >> report.md
+          echo "CNN | $ACCURACY_CNN | $F1_CNN" >> report.md
+          echo "Transfer Learning | $ACCURACY_TL | $F1_TL" >> report.md
+          echo "### 🖼️ Matrices de confusion" >> report.md
+          echo "![inline](metrics/plots/confusion_matrix_simple_mlp.png)" >> report.md
+          echo "![inline](metrics/plots/confusion_matrix_cnn.png)" >> report.md
+          echo "![inline](metrics/plots/confusion_matrix_transfer_learning.png)" >> report.md
+
+          # Publier le rapport comme commentaire PR
+          cml comment create report.md
+
+      # 9) Commit & push metrics/plots (optionnel)
+      - name: Commit and push updated metrics
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add dvc.lock metrics/metrics.json metrics/plots/    # Ne commit que s'il y a des changements
+          if ! git diff --cached --quiet; then
+          git commit -m "ci: update metrics and plots [skip ci]"
+          git push origin HEAD:${{ github.head_ref }}
+          else
+          echo "No changes to commit"
+          fi
